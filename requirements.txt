@@ -1,0 +1,37 @@
+# Audio capture
+sounddevice>=0.4.6
+numpy>=1.24.0
+scipy>=1.11.0
+
+# Speech-to-text
+openai-whisper>=20231117
+
+# Acoustic feature extraction
+librosa>=0.10.1
+soundfile>=0.12.1
+
+# Emotion & sentiment from text
+transformers>=4.35.0
+torch>=2.0.0
+
+# Speaker diarization
+speechbrain>=0.5.16
+pyannote.audio>=3.1.1   # requires HuggingFace token
+
+# Wake word detection
+pvporcupine>=3.0.0       # requires Picovoice API key
+
+# Utilities
+python-dotenv>=1.0.0
+rich>=13.6.0
+pydantic>=2.4.0
+loguru>=0.7.2
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+
+# Web dashboard / WebSocket server
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+python-multipart>=0.0.9
