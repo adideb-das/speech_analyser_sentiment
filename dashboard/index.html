@@ -1,449 +1,658 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Speech Analyzer</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>speech / analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --bg:       #0a0b0d;
-    --surface:  #111318;
-    --border:   #1e2128;
-    --muted:    #3a3f4a;
-    --dim:      #6b7280;
-    --text:     #e2e5ec;
-    --accent:   #00e5a0;
-    --joy:      #f4c430;
-    --anger:    #ff4f4f;
-    --sadness:  #5b8fff;
-    --fear:     #bf5fff;
-    --surprise: #ff914d;
-    --disgust:  #4fdb7a;
-    --neutral:  #8892a4;
-    --r: 10px;
+    --bg:        #080b0f;
+    --surface:   #0e1318;
+    --border:    #1c2530;
+    --accent:    #00e5a0;
+    --accent2:   #0099ff;
+    --danger:    #ff3c5a;
+    --muted:     #3a4a5a;
+    --text:      #d0dde8;
+    --text-dim:  #536070;
+    --mono:      'JetBrains Mono', monospace;
+    --sans:      'Syne', sans-serif;
   }
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; overflow: hidden; }
 
-  /* Scan-line overlay */
-  body::after {
-    content: '';
-    position: fixed; inset: 0; pointer-events: none; z-index: 999;
-    background: repeating-linear-gradient(to bottom, transparent 0px, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px);
-  }
-
-  /* Layout */
-  .shell {
-    display: grid;
-    grid-template-rows: 52px 1fr;
-    grid-template-columns: 320px 1fr 280px;
-    grid-template-areas:
-      "header header header"
-      "left   center right";
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
     height: 100vh;
-    gap: 1px;
-    background: var(--border);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
-  /* Header */
+  /* ── HEADER ── */
   header {
-    grid-area: header;
-    background: var(--surface);
-    display: flex; align-items: center; gap: 20px;
-    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
     border-bottom: 1px solid var(--border);
-  }
-  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; letter-spacing: -0.5px; color: var(--accent); }
-  .logo span { color: var(--dim); font-weight: 400; }
-  .pill {
-    display: flex; align-items: center; gap: 6px;
-    background: var(--bg); border: 1px solid var(--border);
-    border-radius: 999px; padding: 4px 12px; font-size: 11px; color: var(--dim);
-  }
-  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); transition: background .4s; }
-  .dot.live { background: var(--accent); box-shadow: 0 0 6px var(--accent); animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
-  .pill.live { border-color: var(--accent); color: var(--text); }
-  .stats { margin-left: auto; display: flex; gap: 24px; }
-  .stat { text-align: right; }
-  .stat-val { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 600; color: var(--text); line-height: 1; }
-  .stat-lbl { color: var(--dim); font-size: 10px; margin-top: 2px; }
-
-  /* Panels */
-  .panel { background: var(--surface); overflow: hidden; display: flex; flex-direction: column; }
-  .panel-left  { grid-area: left; }
-  .panel-center{ grid-area: center; }
-  .panel-right { grid-area: right; }
-
-  .phead {
-    padding: 14px 18px 10px;
-    border-bottom: 1px solid var(--border);
-    font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 600;
-    letter-spacing: 1.5px; color: var(--dim); text-transform: uppercase;
     flex-shrink: 0;
   }
 
-  /* Transcript feed */
-  #transcript-feed {
-    flex: 1; overflow-y: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px;
-    scrollbar-width: thin; scrollbar-color: var(--muted) transparent;
+  .logo {
+    font-family: var(--sans);
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: -0.02em;
+    color: #fff;
   }
-  .entry {
-    border-left: 2px solid var(--muted); padding-left: 10px;
-    animation: fadeIn .35s ease;
+  .logo span { color: var(--accent); }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
   }
-  @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
-  .entry.has-keyword { border-left-color: var(--accent); }
-  .entry-meta { color: var(--dim); font-size: 10px; margin-bottom: 3px; }
-  .entry-text { color: var(--text); line-height: 1.55; }
-  .entry-text mark { background: none; color: var(--accent); font-style: italic; }
-  .entry-emo { margin-top: 5px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .status-pill .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.3s;
+  }
+  .status-pill.connected .dot {
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 2s infinite;
+  }
+  .status-pill.error .dot { background: var(--danger); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+  }
+
+  .header-stats {
+    display: flex;
+    gap: 24px;
+  }
+  .stat {
+    text-align: right;
+  }
+  .stat-val {
+    font-family: var(--sans);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+
+  /* ── MAIN GRID ── */
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    grid-template-rows: 1fr;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  /* ── LEFT: WAVEFORM COLUMN ── */
+  .waveform-col {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .col-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 16px 24px 10px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .col-label::before {
+    content: '';
+    display: block;
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .waveform-wrap {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0 0 0;
+  }
+
+  #waveCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* centre line */
+  .centre-line {
+    position: absolute;
+    top: 50%;
+    left: 24px; right: 24px;
+    height: 1px;
+    background: var(--border);
+    pointer-events: none;
+  }
+
+  /* playhead */
+  .playhead {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: var(--accent);
+    opacity: 0.5;
+    right: 24px;
+    pointer-events: none;
+  }
+
+  /* ── MIC PERMISSION OVERLAY ── */
+  .mic-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    background: var(--bg);
+    z-index: 10;
+  }
+  .mic-overlay.hidden { display: none; }
+  .mic-btn {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 10px 24px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .mic-btn:hover { background: var(--accent); color: var(--bg); }
+  .mic-hint {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+  }
+
+  /* ── VOLUME BAR ── */
+  .vol-bar-wrap {
+    padding: 0 24px 20px;
+    flex-shrink: 0;
+  }
+  .vol-track {
+    height: 2px;
+    background: var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .vol-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    transition: width 0.06s linear;
+  }
+
+  /* ── RIGHT: TRANSCRIPT COLUMN ── */
+  .transcript-col {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .transcript-feed {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+    scroll-behavior: smooth;
+  }
+  .transcript-feed::-webkit-scrollbar { width: 3px; }
+  .transcript-feed::-webkit-scrollbar-track { background: transparent; }
+  .transcript-feed::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .chunk {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    animation: fadeIn 0.3s ease;
+    position: relative;
+  }
+  .chunk::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: transparent;
+    transition: background 0.3s;
+  }
+  .chunk.fresh::before { background: var(--accent); }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .chunk-meta {
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .chunk-lang {
+    color: var(--accent2);
+    opacity: 0.7;
+  }
+
+  .chunk-text {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text);
+    font-weight: 400;
+  }
+
+  .chunk.silent .chunk-text {
+    color: var(--text-dim);
+    font-style: italic;
+    font-size: 0.75rem;
+  }
+
+  .emotion-row {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
   .emo-tag {
-    font-size: 10px; padding: 2px 8px; border-radius: 999px;
-    border: 1px solid; opacity: .85;
+    font-size: 0.58rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
   }
-  .silence-note { color: var(--muted); font-style: italic; font-size: 11px; text-align: center; padding: 4px 0; }
-
-  /* Emotion chart */
-  .chart-wrap { flex: 1; padding: 16px 18px; min-height: 0; position: relative; }
-  canvas#emo-chart { width: 100% !important; }
-
-  /* Emotion history sparklines */
-  #emo-history { padding: 0 18px 14px; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
-  .spark-row { display: flex; align-items: center; gap: 8px; }
-  .spark-lbl { width: 58px; color: var(--dim); font-size: 10px; text-transform: capitalize; flex-shrink: 0; }
-  .spark-bar-bg { flex: 1; height: 4px; background: var(--border); border-radius: 999px; overflow: hidden; }
-  .spark-bar { height: 100%; border-radius: 999px; transition: width .6s ease; }
-  .spark-val { width: 34px; text-align: right; font-size: 10px; color: var(--dim); }
-
-  /* Speaker timeline */
-  #speaker-timeline {
-    flex: 1; overflow-y: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 8px;
-    scrollbar-width: thin; scrollbar-color: var(--muted) transparent;
+  .emo-tag.dominant {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,229,160,0.07);
   }
-  .spk-entry { display: flex; align-items: center; gap: 10px; animation: fadeIn .35s ease; }
-  .spk-badge {
-    width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 600; flex-shrink: 0;
-  }
-  .spk-info { flex: 1; min-width: 0; }
-  .spk-name { font-size: 11px; color: var(--text); }
-  .spk-time { font-size: 10px; color: var(--dim); }
 
-  /* Keywords alert strip */
-  #kw-strip {
-    padding: 10px 18px; border-top: 1px solid var(--border); flex-shrink: 0;
-    display: flex; gap: 6px; flex-wrap: wrap; min-height: 44px; align-items: center;
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 8px;
+    color: var(--text-dim);
   }
-  .kw-chip {
-    font-size: 10px; padding: 3px 10px; border-radius: 999px;
-    background: rgba(0,229,160,.1); border: 1px solid rgba(0,229,160,.3);
-    color: var(--accent); animation: fadeIn .3s ease;
-  }
-  #kw-empty { color: var(--muted); font-size: 10px; font-style: italic; }
+  .empty-state .big { font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; }
+  .empty-state .small { font-size: 0.6rem; }
 
-  /* Scrollbar for webkit */
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 2px; }
+  /* ── BOTTOM STATUS BAR ── */
+  footer {
+    padding: 8px 28px;
+    border-top: 1px solid var(--border);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  #wsStatus { transition: color 0.3s; }
+  .footer-right { display: flex; gap: 20px; }
 </style>
 </head>
 <body>
-<div class="shell">
 
-  <!-- Header -->
-  <header>
-    <div class="logo">speech<span>/</span>analyzer</div>
-    <div class="pill" id="status-pill">
-      <div class="dot" id="status-dot"></div>
-      <span id="status-text">connecting…</span>
-    </div>
-    <div class="stats">
-      <div class="stat"><div class="stat-val" id="st-chunks">0</div><div class="stat-lbl">chunks</div></div>
-      <div class="stat"><div class="stat-val" id="st-words">0</div><div class="stat-lbl">words</div></div>
-      <div class="stat"><div class="stat-val" id="st-kw">0</div><div class="stat-lbl">keywords</div></div>
-      <div class="stat"><div class="stat-val" id="st-spk">—</div><div class="stat-lbl">dominant emotion</div></div>
-    </div>
-  </header>
+<!-- ── HEADER ── -->
+<header>
+  <div class="logo">speech<span>/</span>analyzer</div>
 
-  <!-- Left: transcript -->
-  <div class="panel panel-left">
-    <div class="phead">Live transcript</div>
-    <div id="transcript-feed">
-      <div class="silence-note">Waiting for audio…</div>
+  <div class="status-pill" id="statusPill">
+    <div class="dot"></div>
+    <span id="statusText">connecting</span>
+  </div>
+
+  <div class="header-stats">
+    <div class="stat">
+      <div class="stat-val" id="statChunks">0</div>
+      <div class="stat-label">chunks</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="statWords">0</div>
+      <div class="stat-label">words</div>
+    </div>
+  </div>
+</header>
+
+<!-- ── MAIN ── -->
+<main>
+
+  <!-- WAVEFORM -->
+  <div class="waveform-col">
+    <div class="col-label">live waveform</div>
+    <div class="waveform-wrap">
+      <div class="centre-line"></div>
+      <div class="playhead"></div>
+      <canvas id="waveCanvas"></canvas>
+
+      <!-- Mic permission overlay -->
+      <div class="mic-overlay" id="micOverlay">
+        <div class="mic-hint">microphone access required for waveform</div>
+        <button class="mic-btn" id="micBtn">enable microphone</button>
+      </div>
+    </div>
+    <div class="vol-bar-wrap">
+      <div class="vol-track"><div class="vol-fill" id="volFill"></div></div>
     </div>
   </div>
 
-  <!-- Center: emotion chart + history -->
-  <div class="panel panel-center">
-    <div class="phead">Emotion over time</div>
-    <div class="chart-wrap">
-      <canvas id="emo-chart"></canvas>
-    </div>
-    <div class="phead" style="border-top:1px solid var(--border)">Current scores</div>
-    <div id="emo-history">
-      <!-- filled by JS -->
+  <!-- TRANSCRIPT -->
+  <div class="transcript-col">
+    <div class="col-label">live transcript</div>
+    <div class="transcript-feed" id="feed">
+      <div class="empty-state" id="emptyState">
+        <div class="big">waiting for speech</div>
+        <div class="small">connect to ws://localhost:8000/ws</div>
+      </div>
     </div>
   </div>
 
-  <!-- Right: speakers + keywords -->
-  <div class="panel panel-right">
-    <div class="phead">Speaker timeline</div>
-    <div id="speaker-timeline">
-      <div class="silence-note" style="margin-top:8px">No speakers yet…</div>
-    </div>
-    <div class="phead" style="border-top:1px solid var(--border)">Keyword alerts</div>
-    <div id="kw-strip"><span id="kw-empty">None detected</span></div>
-  </div>
+</main>
 
-</div>
+<!-- ── FOOTER ── -->
+<footer>
+  <span id="wsStatus">ws://localhost:8000/ws</span>
+  <div class="footer-right">
+    <span id="footerTime">--:--:--</span>
+  </div>
+</footer>
 
 <script>
-// ── Config ────────────────────────────────────────────────────────────────────
-const EMO_COLORS = {
-  joy:      '#f4c430',
-  anger:    '#ff4f4f',
-  sadness:  '#5b8fff',
-  fear:     '#bf5fff',
-  surprise: '#ff914d',
-  disgust:  '#4fdb7a',
-  neutral:  '#8892a4',
-};
-const EMOTIONS = Object.keys(EMO_COLORS);
-const MAX_POINTS = 40;
-const SPK_COLORS = ['#00e5a0','#5b8fff','#f4c430','#ff914d','#bf5fff','#ff4f4f'];
+// ══════════════════════════════════════════════════════
+// WAVEFORM  (Web Audio API — reads directly from mic)
+// ══════════════════════════════════════════════════════
 
-// ── State ─────────────────────────────────────────────────────────────────────
-let chunks = 0, words = 0, kwCount = 0;
-const emoHistory = {};
-EMOTIONS.forEach(e => emoHistory[e] = []);
-const speakers = {};
-let spkIdx = 0;
-const recentKw = [];
+const canvas   = document.getElementById('waveCanvas');
+const ctx      = canvas.getContext('2d');
+const overlay  = document.getElementById('micOverlay');
+const micBtn   = document.getElementById('micBtn');
+const volFill  = document.getElementById('volFill');
 
-// ── Chart.js setup ────────────────────────────────────────────────────────────
-const ctx = document.getElementById('emo-chart').getContext('2d');
-const labels = [];
+let analyser, dataArray, bufferLength, animFrame;
+let waveHistory = [];          // stores past columns of amplitude data
+const SCROLL_SPEED = 2;        // pixels per frame the history scrolls left
 
-const datasets = EMOTIONS.map(e => ({
-  label: e,
-  data: [],
-  borderColor: EMO_COLORS[e],
-  backgroundColor: EMO_COLORS[e] + '18',
-  borderWidth: 1.5,
-  pointRadius: 0,
-  tension: 0.45,
-  fill: false,
-}));
+function resizeCanvas() {
+  canvas.width  = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
 
-const chart = new Chart(ctx, {
-  type: 'line',
-  data: { labels, datasets },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: { duration: 300 },
-    interaction: { mode: 'index', intersect: false },
-    plugins: {
-      legend: {
-        labels: {
-          color: '#6b7280', font: { family: 'DM Mono', size: 10 },
-          boxWidth: 10, padding: 10,
-          filter: item => datasets[item.datasetIndex].data.some(v => v > 0),
-        }
-      },
-      tooltip: {
-        backgroundColor: '#111318', borderColor: '#1e2128', borderWidth: 1,
-        titleColor: '#e2e5ec', bodyColor: '#6b7280',
-        titleFont: { family: 'Syne', size: 12 },
-        bodyFont: { family: 'DM Mono', size: 11 },
-        callbacks: {
-          label: ctx => ` ${ctx.dataset.label}: ${(ctx.raw * 100).toFixed(0)}%`
-        }
-      }
-    },
-    scales: {
-      x: {
-        display: false,
-        ticks: { color: '#3a3f4a', maxTicksLimit: 6, font: { family: 'DM Mono', size: 9 } },
-        grid: { color: '#1e2128' }
-      },
-      y: {
-        min: 0, max: 1,
-        ticks: {
-          color: '#3a3f4a', font: { family: 'DM Mono', size: 9 }, stepSize: 0.25,
-          callback: v => (v * 100) + '%'
-        },
-        grid: { color: '#1e2128' }
-      }
-    }
+async function startMic() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const source   = audioCtx.createMediaStreamSource(stream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0.8;
+    source.connect(analyser);
+    bufferLength = analyser.frequencyBinCount;
+    dataArray    = new Uint8Array(bufferLength);
+    overlay.classList.add('hidden');
+    drawWaveform();
+  } catch(e) {
+    micBtn.textContent = 'permission denied';
+    micBtn.style.borderColor = 'var(--danger)';
+    micBtn.style.color = 'var(--danger)';
   }
-});
-
-// ── Spark bars ────────────────────────────────────────────────────────────────
-function buildSparks() {
-  const wrap = document.getElementById('emo-history');
-  wrap.innerHTML = '';
-  EMOTIONS.forEach(e => {
-    const row = document.createElement('div');
-    row.className = 'spark-row';
-    row.innerHTML = `
-      <span class="spark-lbl">${e}</span>
-      <div class="spark-bar-bg"><div class="spark-bar" id="sb-${e}" style="width:0%;background:${EMO_COLORS[e]}"></div></div>
-      <span class="spark-val" id="sv-${e}">0%</span>`;
-    wrap.appendChild(row);
-  });
-}
-buildSparks();
-
-// ── Push new emotions into chart + sparks ─────────────────────────────────────
-function pushEmotions(emotions) {
-  const ts = new Date().toLocaleTimeString('en', { hour12: false });
-  labels.push(ts);
-  if (labels.length > MAX_POINTS) labels.shift();
-
-  const scoreMap = {};
-  EMOTIONS.forEach(e => scoreMap[e] = 0);
-  emotions.forEach(({ label, score }) => { if (scoreMap[label] !== undefined) scoreMap[label] = score; });
-
-  datasets.forEach(ds => {
-    ds.data.push(scoreMap[ds.label] ?? 0);
-    if (ds.data.length > MAX_POINTS) ds.data.shift();
-  });
-  chart.update('none');
-
-  // Sparks
-  EMOTIONS.forEach(e => {
-    const pct = ((scoreMap[e] ?? 0) * 100).toFixed(0);
-    const bar = document.getElementById('sb-' + e);
-    const val = document.getElementById('sv-' + e);
-    if (bar) bar.style.width = pct + '%';
-    if (val) val.textContent = pct + '%';
-  });
-
-  // Dominant
-  const dom = emotions[0];
-  if (dom) document.getElementById('st-spk').textContent = dom.label;
 }
 
-// ── Transcript entry ──────────────────────────────────────────────────────────
-function addTranscript(result) {
-  const feed = document.getElementById('transcript-feed');
-  // Remove placeholder
-  feed.querySelectorAll('.silence-note').forEach(n => n.remove());
+micBtn.addEventListener('click', startMic);
 
-  const entry = document.createElement('div');
-  entry.className = 'entry' + (result.keywords_found?.length ? ' has-keyword' : '');
+// try auto-start (works if already granted)
+navigator.mediaDevices?.getUserMedia({ audio: true })
+  .then(stream => {
+    // rebuild through proper path
+    stream.getTracks().forEach(t => t.stop());
+    startMic();
+  }).catch(() => {});
 
-  const time = new Date(result.timestamp).toLocaleTimeString('en', { hour12: false });
-  let text = result.transcript || '';
-  (result.keywords_found || []).forEach(kw => {
-    text = text.replace(new RegExp(`\\b${kw}\\b`, 'gi'), m => `<mark>${m}</mark>`);
-  });
 
-  const emoBadges = (result.text_emotions || []).slice(0, 3).map(e => {
-    const c = EMO_COLORS[e.label] || '#888';
-    return `<span class="emo-tag" style="color:${c};border-color:${c}40">${e.label} ${(e.score*100).toFixed(0)}%</span>`;
-  }).join('');
+function drawWaveform() {
+  animFrame = requestAnimationFrame(drawWaveform);
+  analyser.getByteTimeDomainData(dataArray);
 
-  entry.innerHTML = `
-    <div class="entry-meta">${time} · ${result.language || 'en'}</div>
-    <div class="entry-text">${text}</div>
-    ${emoBadges ? `<div class="entry-emo">${emoBadges}</div>` : ''}`;
+  const W = canvas.width;
+  const H = canvas.height;
 
-  feed.appendChild(entry);
-  feed.scrollTop = feed.scrollHeight;
+  // compute RMS for volume bar
+  let sum = 0;
+  for (let i = 0; i < bufferLength; i++) {
+    const v = (dataArray[i] - 128) / 128;
+    sum += v * v;
+  }
+  const rms = Math.sqrt(sum / bufferLength);
+  volFill.style.width = Math.min(rms * 300, 100) + '%';
 
-  // word count
-  words += (result.transcript || '').split(/\s+/).filter(Boolean).length;
-  document.getElementById('st-words').textContent = words;
-}
+  // Sample ~W amplitude values from current frame
+  const column = [];
+  for (let x = 0; x < W; x++) {
+    const idx = Math.floor(x / W * bufferLength);
+    column.push((dataArray[idx] - 128) / 128);  // -1..1
+  }
 
-// ── Speaker timeline ──────────────────────────────────────────────────────────
-function addSpeakers(speakerList) {
-  if (!speakerList?.length) return;
-  const tl = document.getElementById('speaker-timeline');
-  tl.querySelectorAll('.silence-note').forEach(n => n.remove());
+  // We'll store just the "current" frame and scroll it
+  // Actually: draw scrolling approach — each frame append one column to history
+  // but that's memory intensive. Instead use canvas scroll trick.
 
-  speakerList.forEach(seg => {
-    if (!speakers[seg.speaker]) {
-      speakers[seg.speaker] = SPK_COLORS[spkIdx++ % SPK_COLORS.length];
+  // === SCROLLING WAVEFORM ===
+  // 1. Shift existing content left by SCROLL_SPEED px
+  const imgData = ctx.getImageData(SCROLL_SPEED, 0, W - SCROLL_SPEED, H);
+  ctx.putImageData(imgData, 0, 0);
+
+  // 2. Clear right strip
+  ctx.fillStyle = 'rgba(8, 11, 15, 1)';
+  ctx.fillRect(W - SCROLL_SPEED, 0, SCROLL_SPEED, H);
+
+  // 3. Draw the new amplitude columns on the right strip
+  const mid = H / 2;
+  const xStart = W - SCROLL_SPEED;
+
+  // For each new pixel column we need to sample from current frame
+  for (let dx = 0; dx < SCROLL_SPEED; dx++) {
+    // sample the middle of the current buffer for a "current" reading
+    const sampleIdx = Math.floor((dx / SCROLL_SPEED + 0.5) * (bufferLength / SCROLL_SPEED / 2));
+    // Use a spread of sample points averaged
+    let amp = 0;
+    const spread = Math.floor(bufferLength / 20);
+    for (let s = 0; s < spread; s++) {
+      const i = (sampleIdx * spread + s) % bufferLength;
+      amp += Math.abs((dataArray[i] - 128) / 128);
     }
-    const color = speakers[seg.speaker];
-    const entry = document.createElement('div');
-    entry.className = 'spk-entry';
-    const initial = seg.speaker.replace('SPEAKER_', 'S');
-    entry.innerHTML = `
-      <div class="spk-badge" style="background:${color}22;color:${color};border:1px solid ${color}44">${initial}</div>
-      <div class="spk-info">
-        <div class="spk-name">${seg.speaker}</div>
-        <div class="spk-time">${seg.start}s → ${seg.end}s</div>
-      </div>`;
-    tl.appendChild(entry);
-    tl.scrollTop = tl.scrollHeight;
-  });
+    amp = amp / spread;
+
+    const barH = amp * mid * 1.8;
+
+    // gradient fill
+    const grad = ctx.createLinearGradient(0, mid - barH, 0, mid + barH);
+    grad.addColorStop(0,   'rgba(0, 229, 160, 0.85)');
+    grad.addColorStop(0.5, 'rgba(0, 153, 255, 0.9)');
+    grad.addColorStop(1,   'rgba(0, 229, 160, 0.85)');
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(xStart + dx, mid - barH, 1, barH * 2);
+
+    // draw a faint reflected glow below
+    const glowGrad = ctx.createLinearGradient(0, mid, 0, mid + barH * 2.5);
+    glowGrad.addColorStop(0,   'rgba(0, 153, 255, 0.2)');
+    glowGrad.addColorStop(1,   'rgba(0, 153, 255, 0)');
+    ctx.fillStyle = glowGrad;
+    ctx.fillRect(xStart + dx, mid + barH, 1, barH * 1.5);
+  }
 }
 
-// ── Keywords ──────────────────────────────────────────────────────────────────
-function addKeywords(kws) {
-  if (!kws?.length) return;
-  const strip = document.getElementById('kw-strip');
-  document.getElementById('kw-empty')?.remove();
-
-  kws.forEach(kw => {
-    if (recentKw.includes(kw)) return;
-    recentKw.push(kw);
-    const chip = document.createElement('span');
-    chip.className = 'kw-chip';
-    chip.textContent = kw;
-    strip.appendChild(chip);
-    kwCount++;
-    document.getElementById('st-kw').textContent = kwCount;
-  });
+// Draw idle pattern when no mic yet
+function drawIdle() {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(28, 37, 48, 0.8)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, H/2);
+  ctx.lineTo(W, H/2);
+  ctx.stroke();
 }
+drawIdle();
 
-// ── WebSocket ─────────────────────────────────────────────────────────────────
-let ws, pingInterval;
+
+// ══════════════════════════════════════════════════════
+// WEBSOCKET  — receives transcript results
+// ══════════════════════════════════════════════════════
+
+const feed       = document.getElementById('feed');
+const emptyState = document.getElementById('emptyState');
+const statusPill = document.getElementById('statusPill');
+const statusText = document.getElementById('statusText');
+const wsStatusEl = document.getElementById('wsStatus');
+const statChunks = document.getElementById('statChunks');
+const statWords  = document.getElementById('statWords');
+
+let chunkCount = 0, wordCount = 0;
+
+const WS_URL = `ws://${location.host}/ws`;
 
 function connect() {
-  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  ws = new WebSocket(`${proto}://${location.host}/ws`);
+  const ws = new WebSocket(WS_URL);
 
   ws.onopen = () => {
-    document.getElementById('status-dot').classList.add('live');
-    document.getElementById('status-pill').classList.add('live');
-    document.getElementById('status-text').textContent = 'live';
-    pingInterval = setInterval(() => ws.readyState === 1 && ws.send('ping'), 15000);
+    statusPill.className = 'status-pill connected';
+    statusText.textContent = 'live';
+    wsStatusEl.style.color = 'var(--accent)';
+    wsStatusEl.textContent = WS_URL;
+    // send periodic pings
+    setInterval(() => ws.readyState === 1 && ws.send('ping'), 20000);
+  };
+
+  ws.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    appendChunk(data);
   };
 
   ws.onclose = () => {
-    document.getElementById('status-dot').classList.remove('live');
-    document.getElementById('status-pill').classList.remove('live');
-    document.getElementById('status-text').textContent = 'reconnecting…';
-    clearInterval(pingInterval);
-    setTimeout(connect, 2000);
+    statusPill.className = 'status-pill';
+    statusText.textContent = 'disconnected';
+    wsStatusEl.style.color = 'var(--text-dim)';
+    setTimeout(connect, 3000);  // auto-reconnect
   };
 
-  ws.onerror = () => ws.close();
-
-  ws.onmessage = ({ data }) => {
-    let result;
-    try { result = JSON.parse(data); } catch { return; }
-    if (result.is_silent) return;
-
-    chunks++;
-    document.getElementById('st-chunks').textContent = chunks;
-
-    if (result.transcript) addTranscript(result);
-    if (result.text_emotions?.length) pushEmotions(result.text_emotions);
-    if (result.speakers?.length) addSpeakers(result.speakers);
-    if (result.keywords_found?.length) addKeywords(result.keywords_found);
+  ws.onerror = () => {
+    statusPill.className = 'status-pill error';
+    statusText.textContent = 'error';
   };
 }
 
+// Attempt WS connection — will retry silently
 connect();
+
+function appendChunk(data) {
+  // remove empty state
+  if (emptyState) emptyState.remove();
+
+  const isSilent = data.is_silent;
+  const text     = data.transcript || '';
+  const ts       = data.timestamp  || '';
+  const lang     = data.language   || '';
+  const emotions = data.text_emotions || [];
+
+  // stats
+  chunkCount++;
+  if (!isSilent && text) wordCount += text.trim().split(/\s+/).filter(Boolean).length;
+  statChunks.textContent = chunkCount;
+  statWords.textContent  = wordCount;
+
+  const div = document.createElement('div');
+  div.className = 'chunk fresh' + (isSilent ? ' silent' : '');
+
+  // meta line
+  const meta = document.createElement('div');
+  meta.className = 'chunk-meta';
+  meta.innerHTML = `<span>${ts}</span>${lang ? `<span class="chunk-lang">${lang}</span>` : ''}`;
+  div.appendChild(meta);
+
+  // text
+  const textEl = document.createElement('div');
+  textEl.className = 'chunk-text';
+  textEl.textContent = isSilent ? '── silence ──' : (text || '…');
+  div.appendChild(textEl);
+
+  // emotion tags
+  if (emotions.length > 0 && !isSilent) {
+    const row = document.createElement('div');
+    row.className = 'emotion-row';
+    emotions.slice(0, 3).forEach((em, i) => {
+      const tag = document.createElement('span');
+      tag.className = 'emo-tag' + (i === 0 ? ' dominant' : '');
+      tag.textContent = `${em.label} ${Math.round(em.score * 100)}%`;
+      row.appendChild(tag);
+    });
+    div.appendChild(row);
+  }
+
+  feed.appendChild(div);
+  feed.scrollTop = feed.scrollHeight;
+
+  // remove "fresh" border after a moment
+  setTimeout(() => div.classList.remove('fresh'), 2000);
+}
+
+// ── Clock ──
+function tick() {
+  document.getElementById('footerTime').textContent =
+    new Date().toLocaleTimeString('en-GB');
+}
+tick();
+setInterval(tick, 1000);
 </script>
 </body>
 </html>
